@@ -1,0 +1,12 @@
+:root { --mc-teal:#2f8f83; --mc-mint:#e9f7f4; --mc-blue:#486a8f; --mc-ink:#243447; }
+body { background:#f8fbfb; color:var(--mc-ink); }
+.hero { background:linear-gradient(135deg,var(--mc-mint),#eef4ff); border:1px solid #dcefed; }
+.text-teal { color:var(--mc-teal)!important; }
+.btn-primary { background:var(--mc-teal); border-color:var(--mc-teal); }
+.btn-primary:hover { background:#26766d; border-color:#26766d; }
+.card, .stat-card { border:1px solid #e2eeee; border-radius:1rem; }
+.stat-card { background:white; padding:1.5rem; box-shadow:0 0.35rem 1rem rgba(36,52,71,.06); display:flex; flex-direction:column; gap:.25rem; }
+.stat-card strong { font-size:2rem; color:var(--mc-teal); }
+.action-card, .provider-card { transition:transform .15s ease, box-shadow .15s ease; }
+.action-card:hover, .provider-card:hover { transform:translateY(-3px); box-shadow:0 .75rem 1.5rem rgba(36,52,71,.10); }
+.validation-message { color:#b42318; font-size:.9rem; }

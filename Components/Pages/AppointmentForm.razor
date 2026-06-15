@@ -1,0 +1,12 @@
+@using System.ComponentModel.DataAnnotations
+<EditForm Model="Appointment" OnValidSubmit="SaveAsync"><DataAnnotationsValidator /><ValidationSummary />
+ <div class="row g-3"><div class="col-md-6"><label class="form-label">Patient name</label><InputText class="form-control" @bind-Value="Appointment.PatientName" /><ValidationMessage For="()=>Appointment.PatientName" /></div>
+ <div class="col-md-6"><label class="form-label">Psychologist</label><InputText class="form-control" @bind-Value="Appointment.PsychologistName" list="psychologists" /><datalist id="psychologists"><option>Dr. Emily Carter</option><option>Dr. Michael Smith</option><option>Dr. Sofia Martinez</option><option>Dr. David Johnson</option></datalist><ValidationMessage For="()=>Appointment.PsychologistName" /></div>
+ <div class="col-md-4"><label class="form-label">Date</label><InputDate class="form-control" @bind-Value="Appointment.AppointmentDate" /><ValidationMessage For="()=>Appointment.AppointmentDate" /></div>
+ <div class="col-md-4"><label class="form-label">Time</label><input class="form-control" type="time" @bind="timeText" required /></div>
+ <div class="col-md-4"><label class="form-label">Status</label><InputSelect class="form-select" @bind-Value="Appointment.Status"><option value="Scheduled">Scheduled</option><option value="Completed">Completed</option><option value="Cancelled">Cancelled</option></InputSelect></div>
+ <div class="col-12"><label class="form-label">Reason</label><InputTextArea class="form-control" @bind-Value="Appointment.Reason" rows="3" /><ValidationMessage For="()=>Appointment.Reason" /></div>
+ <div class="col-12"><label class="form-label">Notes</label><InputTextArea class="form-control" @bind-Value="Appointment.Notes" rows="3" /></div></div>
+ <div class="mt-4"><button class="btn btn-primary" type="submit">@ButtonText</button><a class="btn btn-outline-secondary ms-2" href="/appointments">Cancel</a></div>
+</EditForm>
+@code { [Parameter,EditorRequired] public Appointment Appointment {get;set;}=new(); [Parameter,EditorRequired] public EventCallback<Appointment> OnSave {get;set;} [Parameter] public string ButtonText {get;set;}="Save"; string timeText="09:00"; protected override void OnParametersSet()=>timeText=Appointment.AppointmentTime.ToString("HH:mm"); async Task SaveAsync(){ if(TimeOnly.TryParse(timeText,out var t)) Appointment.AppointmentTime=t; await OnSave.InvokeAsync(Appointment);} }
