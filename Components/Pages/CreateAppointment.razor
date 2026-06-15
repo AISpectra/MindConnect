@@ -1,0 +1,7 @@
+@page "/appointments/create"
+@attribute [Authorize]
+@inject AppointmentService Service
+@inject AuthenticationStateProvider Auth
+@inject NavigationManager Nav
+<h1>Schedule Appointment</h1>@if(error is not null){<div class="alert alert-danger">@error</div>}<AppointmentForm Appointment="appointment" ButtonText="Create appointment" OnSave="Save" />
+@code{Appointment appointment=new(); string? error; protected override async Task OnInitializedAsync(){var s=await Auth.GetAuthenticationStateAsync(); appointment.UserId=s.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value!; appointment.PatientName=s.User.Identity?.Name??"";} async Task Save(Appointment a){try{a.CreatedAt=DateTime.UtcNow; await Service.AddAsync(a); Nav.NavigateTo("/appointments");}catch(Exception){error="We could not save the appointment. Please check your information and try again.";}}}
