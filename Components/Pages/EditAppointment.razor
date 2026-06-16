@@ -1,7 +1,54 @@
 @page "/appointments/edit/{Id:int}"
 @attribute [Authorize]
 @inject AppointmentService Service
+@inject PsychologistService Psychologists
 @inject AuthenticationStateProvider Auth
 @inject NavigationManager Nav
-<h1>Edit Appointment</h1>@if(error is not null){<div class="alert alert-danger">@error</div>}@if(appointment is null){<p class="alert alert-warning">Appointment not found.</p>}else{<AppointmentForm Appointment="appointment" ButtonText="Save changes" OnSave="Save" />}
-@code{[Parameter] public int Id{get;set;} Appointment? appointment; string? error; protected override async Task OnInitializedAsync(){var s=await Auth.GetAuthenticationStateAsync(); var uid=s.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value!; appointment=await Service.GetByIdAsync(Id,uid);} async Task Save(Appointment a){try{await Service.UpdateAsync(a); Nav.NavigateTo($"/appointments/{a.Id}");}catch(Exception){error="We could not update this appointment. Please try again.";}}}
+
+<h1>Edit Appointment</h1>
+@if (error is not null)
+{
+    <div class="alert alert-danger">@error</div>
+}
+@if (appointment is null || availablePsychologists is null)
+{
+    <p class="alert alert-warning">Appointment not found.</p>
+}
+else
+{
+    <AppointmentForm Appointment="appointment" Psychologists="availablePsychologists" ButtonText="Save changes" OnSave="Save" />
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    Appointment? appointment;
+    IReadOnlyList<Psychologist>? availablePsychologists;
+    string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await Auth.GetAuthenticationStateAsync();
+        var uid = state.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value!;
+        appointment = await Service.GetByIdAsync(Id, uid);
+        availablePsychologists = await Psychologists.GetPsychologistsAsync();
+    }
+
+    async Task Save(Appointment a)
+    {
+        try
+        {
+            if (await Service.HasPsychologistConflictAsync(a))
+            {
+                error = "That psychologist already has an appointment at that date and time.";
+                return;
+            }
+
+            await Service.UpdateAsync(a);
+            Nav.NavigateTo($"/appointments/{a.Id}");
+        }
+        catch (Exception)
+        {
+            error = "We could not update this appointment. Please try again.";
+        }
+    }
+}

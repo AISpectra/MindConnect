@@ -1,7 +1,93 @@
 @page "/appointments/{Id:int}"
 @attribute [Authorize]
 @inject AppointmentService Service
+@inject UserManager<ApplicationUser> UserManager
 @inject AuthenticationStateProvider Auth
 @inject NavigationManager Nav
-<h1>Appointment Details</h1>@if(error is not null){<div class="alert alert-danger">@error</div>}@if(a is null){<p class="alert alert-warning">Appointment not found or you do not have access.</p>}else{<div class="card"><div class="card-body"><h2 class="h4">@a.PsychologistName</h2><p><strong>Patient:</strong> @a.PatientName</p><p><strong>When:</strong> @a.AppointmentDate at @a.AppointmentTime</p><p><strong>Status:</strong> @a.Status</p><p><strong>Reason:</strong> @a.Reason</p><p><strong>Notes:</strong> @(a.Notes ?? "None")</p><p><strong>Created:</strong> @a.CreatedAt.ToLocalTime()</p><a class="btn btn-outline-primary" href="/appointments/edit/@a.Id">Edit</a><button class="btn btn-outline-warning ms-2" @onclick="Cancel">Cancel appointment</button><button class="btn btn-outline-danger ms-2" @onclick="Delete">Delete</button></div></div>}
-@code{[Parameter] public int Id{get;set;} Appointment? a; string? uid; string? error; protected override async Task OnInitializedAsync(){var s=await Auth.GetAuthenticationStateAsync(); uid=s.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value!; a=await Service.GetByIdAsync(Id,uid);} async Task Cancel(){if(a is null)return; try{a.Status=AppointmentStatus.Cancelled; await Service.UpdateAsync(a); Nav.NavigateTo("/appointments");}catch(Exception){error="We could not cancel this appointment.";}} async Task Delete(){if(a is null)return; try{await Service.DeleteAsync(a); Nav.NavigateTo("/appointments");}catch(Exception){error="We could not delete this appointment.";}}}
+
+<h1>Appointment Details</h1>
+@if (error is not null)
+{
+    <div class="alert alert-danger">@error</div>
+}
+@if (appointment is null)
+{
+    <p class="alert alert-warning">Appointment not found or you do not have access.</p>
+}
+else
+{
+    <div class="card">
+        <div class="card-body">
+            <h2 class="h4">@appointment.PsychologistName</h2>
+            <p><strong>Patient:</strong> @appointment.PatientName</p>
+            <p><strong>When:</strong> @appointment.AppointmentDate at @appointment.AppointmentTime</p>
+            <p><strong>Status:</strong> @appointment.Status</p>
+            <p><strong>Reason:</strong> @appointment.Reason</p>
+            <p><strong>Notes:</strong> @(appointment.Notes ?? "None")</p>
+            <p><strong>Created:</strong> @appointment.CreatedAt.ToLocalTime()</p>
+            @if (!isPsychologist)
+            {
+                <a class="btn btn-outline-primary" href="/appointments/edit/@appointment.Id">Edit</a>
+                <button class="btn btn-outline-danger ms-2" @onclick="Delete">Delete</button>
+            }
+            @if (appointment.Status == AppointmentStatus.Scheduled)
+            {
+                <button class="btn btn-outline-warning ms-2" @onclick="Cancel">Cancel appointment</button>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    Appointment? appointment;
+    bool isPsychologist;
+    string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await Auth.GetAuthenticationStateAsync();
+        var currentUser = await UserManager.GetUserAsync(state.User);
+        isPsychologist = currentUser?.RolePreference == "Psychologist";
+        var userId = state.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value!;
+        var psychologistName = isPsychologist ? currentUser?.FullName : null;
+        appointment = await Service.GetForParticipantAsync(Id, userId, psychologistName);
+    }
+
+    async Task Cancel()
+    {
+        if (appointment is null)
+        {
+            return;
+        }
+
+        try
+        {
+            appointment.Status = AppointmentStatus.Cancelled;
+            await Service.UpdateAsync(appointment);
+            Nav.NavigateTo("/appointments");
+        }
+        catch (Exception)
+        {
+            error = "We could not cancel this appointment.";
+        }
+    }
+
+    async Task Delete()
+    {
+        if (appointment is null || isPsychologist)
+        {
+            return;
+        }
+
+        try
+        {
+            await Service.DeleteAsync(appointment);
+            Nav.NavigateTo("/appointments");
+        }
+        catch (Exception)
+        {
+            error = "We could not delete this appointment.";
+        }
+    }
+}

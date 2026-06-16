@@ -1,3 +1,38 @@
 @page "/psychologists"
 @inject PsychologistService availablePsychologists
-<h1>Psychologist Availability</h1><p class="text-muted">Choose a psychologist and schedule a support appointment.</p><div class="row g-4">@foreach(var p in availablePsychologists.GetPsychologists()){<div class="col-md-6"><div class="card h-100 provider-card"><div class="card-body"><h2 class="h4">@p.Name</h2><p class="fw-semibold text-teal">@p.Specialty</p><p>@p.ShortBio</p><p><strong>Available:</strong> @p.AvailableDays</p><a class="btn btn-primary" href="/appointments/create">Schedule Appointment</a></div></div></div>}</div>
+
+<h1>Psychologist Availability</h1>
+<p class="text-muted">Choose a psychologist whose schedule matches your needs.</p>
+
+@if (psychologists is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="row g-4">
+        @foreach (var p in psychologists)
+        {
+            <div class="col-md-6">
+                <div class="card h-100 provider-card">
+                    <div class="card-body">
+                        <h2 class="h4">@p.Name</h2>
+                        <p class="fw-semibold text-teal">@p.Specialty</p>
+                        <p>@p.ShortBio</p>
+                        <p><strong>Available:</strong> @p.AvailableDays, @p.AvailableFrom-@p.AvailableTo</p>
+                        <a class="btn btn-primary" href="/appointments/create">Schedule Appointment</a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    IReadOnlyList<Psychologist>? psychologists;
+
+    protected override async Task OnInitializedAsync()
+    {
+        psychologists = await availablePsychologists.GetPsychologistsAsync();
+    }
+}

@@ -1,11 +1,64 @@
 @page "/dashboard"
 @attribute [Authorize]
 @inject AppointmentService Appointments
+@inject UserManager<ApplicationUser> UserManager
 @inject AuthenticationStateProvider Auth
+
 <PageTitle>Dashboard</PageTitle>
 <h1>Dashboard</h1>
-@if (items is null) { <p>Loading...</p> } else {
-<p class="text-muted">Welcome back, @userName. Here is your appointment overview.</p>
-<div class="row g-3 mb-4"><div class="col-md-4"><div class="stat-card"><strong>@items.Count</strong><span>Total appointments</span></div></div><div class="col-md-4"><div class="stat-card"><strong>@items.Count(a=>a.Status==AppointmentStatus.Scheduled)</strong><span>Upcoming</span></div></div><div class="col-md-4"><div class="stat-card"><strong>@items.Count(a=>a.Status!=AppointmentStatus.Scheduled)</strong><span>History</span></div></div></div>
-<div class="row g-3">@foreach (var link in links) { <div class="col-md-6 col-xl-3"><a class="card action-card h-100 text-decoration-none" href="@link.Url"><div class="card-body"><h2 class="h5">@link.Title</h2><p>@link.Text</p></div></a></div> }</div> }
-@code { List<Appointment>? items; string? userName; readonly (string Title,string Text,string Url)[] links=[("My Appointments","View, edit, or cancel appointments.","/appointments"),("Schedule Appointment","Book a new support session.","/appointments/create"),("Appointment History","Review completed and cancelled visits.","/history"),("Psychologist Availability","Find available psychologists.","/psychologists")]; protected override async Task OnInitializedAsync(){var state=await Auth.GetAuthenticationStateAsync(); userName=state.User.Identity?.Name; var id=state.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value!; items=await Appointments.GetForUserAsync(id);} }
+@if (items is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <p class="text-muted">Welcome back, @userName. @introText</p>
+    <div class="row g-3 mb-4">
+        <div class="col-md-4"><div class="stat-card"><strong>@items.Count</strong><span>Total appointments</span></div></div>
+        <div class="col-md-4"><div class="stat-card"><strong>@items.Count(a => a.Status == AppointmentStatus.Scheduled)</strong><span>Upcoming</span></div></div>
+        <div class="col-md-4"><div class="stat-card"><strong>@items.Count(a => a.Status != AppointmentStatus.Scheduled)</strong><span>History</span></div></div>
+    </div>
+    <div class="row g-3">
+        @foreach (var link in links)
+        {
+            <div class="col-md-6 col-xl-3"><a class="card action-card h-100 text-decoration-none" href="@link.Url"><div class="card-body"><h2 class="h5">@link.Title</h2><p>@link.Text</p></div></a></div>
+        }
+    </div>
+}
+
+@code {
+    List<Appointment>? items;
+    string? userName;
+    string introText = "Here is your appointment overview.";
+    (string Title, string Text, string Url)[] links = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await Auth.GetAuthenticationStateAsync();
+        var currentUser = await UserManager.GetUserAsync(state.User);
+        userName = currentUser?.FullName ?? state.User.Identity?.Name;
+        if (currentUser?.RolePreference == "Psychologist")
+        {
+            items = await Appointments.GetForPsychologistAsync(currentUser.FullName);
+            introText = "These are the appointments patients have booked with you.";
+            links =
+            [
+                ("Patient Appointments", "Review or cancel appointments booked with you.", "/appointments"),
+                ("Psychologist Availability", "Check how your public availability appears.", "/psychologists"),
+                ("Documentation", "Review the project overview.", "/about")
+            ];
+        }
+        else
+        {
+            var id = state.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value!;
+            items = await Appointments.GetForUserAsync(id);
+            links =
+            [
+                ("My Appointments", "View, edit, or cancel appointments.", "/appointments"),
+                ("Schedule Appointment", "Book a new support session.", "/appointments/create"),
+                ("Appointment History", "Review completed and cancelled visits.", "/history"),
+                ("Psychologist Availability", "Find available psychologists.", "/psychologists")
+            ];
+        }
+    }
+}

@@ -1,2 +1,40 @@
 @page "/about"
-<h1>About / Documentation</h1><div class="card"><div class="card-body"><h2>Purpose</h2><p>MindConnect is a course MVP that helps patients manage mental health support appointments with psychologists.</p><h2>Main features</h2><ul><li>Register, login, and logout using ASP.NET Core Identity.</li><li>Create, view, edit, cancel, delete, and review appointments.</li><li>View static psychologist availability cards.</li><li>Dashboard summaries for a fast demo.</li></ul><h2>How to use</h2><ol><li>Create an account or use the demo account.</li><li>Open Dashboard to review summaries.</li><li>Use Schedule Appointment to create an appointment.</li><li>Use My Appointments and History to manage records.</li></ol><h2>Technologies</h2><p>.NET 8, Blazor Server, EF Core, SQLite, ASP.NET Core Identity, and Bootstrap.</p><h2>Limitations and future improvements</h2><p>Future versions could add psychologist accounts, calendar integration, email reminders, and production hosting configuration.</p></div></div>
+
+<h1>About / Documentation</h1>
+<div class="card">
+    <div class="card-body">
+        <h2>Purpose</h2>
+        <p>MindConnect is a course MVP that helps patients manage mental health support appointments with psychologists.</p>
+
+        <h2>Main features</h2>
+        <ul>
+            <li>Register, login, and logout using ASP.NET Core Identity.</li>
+            <li>Create patient or psychologist accounts.</li>
+            <li>Psychologists can register their specialty, bio, available days, and available hours.</li>
+            <li>Patients can schedule appointments only within psychologist availability.</li>
+            <li>Patients can create, view, edit, cancel, delete, and review appointments.</li>
+            <li>Psychologists can view and cancel appointments booked with them.</li>
+            <li>The dashboard changes based on whether the user is a patient or psychologist.</li>
+            <li>The app validates invalid login attempts, past dates, unavailable times, and duplicate appointment slots.</li>
+        </ul>
+
+        <h2>How to use</h2>
+        <ol>
+            <li>Create an account or use the seeded demo patient account.</li>
+            <li>Use the Dashboard to review appointment summaries.</li>
+            <li>Open Psychologists to review available providers and schedules.</li>
+            <li>Use Schedule Appointment to create a valid appointment as a patient.</li>
+            <li>Use My Appointments and History to manage records.</li>
+            <li>Log in as a psychologist to view appointments booked with that psychologist.</li>
+        </ol>
+
+        <h2>Technologies</h2>
+        <p>.NET 8, Blazor Server, EF Core, SQLite, ASP.NET Core Identity, and Bootstrap.</p>
+
+        <h2>Data storage</h2>
+        <p>The app stores users, psychologist profile fields, and appointments in a local SQLite database through Entity Framework Core.</p>
+
+        <h2>Limitations and future improvements</h2>
+        <p>Future versions could add a calendar-style scheduler, reminders, appointment search, admin reporting, and a production database such as PostgreSQL.</p>
+    </div>
+</div>

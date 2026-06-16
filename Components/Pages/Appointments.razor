@@ -1,7 +1,67 @@
 @page "/appointments"
 @attribute [Authorize]
 @inject AppointmentService Service
+@inject UserManager<ApplicationUser> UserManager
 @inject AuthenticationStateProvider Auth
-<h1>My Appointments</h1><a class="btn btn-primary mb-3" href="/appointments/create">Schedule Appointment</a>@if(!string.IsNullOrWhiteSpace(message)){<div class="alert alert-info">@message</div>}
-@if(items is null){<p>Loading...</p>}else if(!items.Any()){<p>No appointments yet.</p>}else{<div class="table-responsive"><table class="table align-middle"><thead><tr><th>Date</th><th>Time</th><th>Psychologist</th><th>Reason</th><th>Status</th><th></th></tr></thead><tbody>@foreach(var a in items){<tr><td>@a.AppointmentDate</td><td>@a.AppointmentTime</td><td>@a.PsychologistName</td><td>@a.Reason</td><td><span class="badge bg-@Badge(a.Status)">@a.Status</span></td><td class="text-end"><a class="btn btn-sm btn-outline-primary" href="/appointments/@a.Id">Details</a> <a class="btn btn-sm btn-outline-secondary" href="/appointments/edit/@a.Id">Edit</a></td></tr>}</tbody></table></div>}
-@code{List<Appointment>? items; string? userId; string? message; protected override async Task OnInitializedAsync(){var s=await Auth.GetAuthenticationStateAsync(); userId=s.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value; items=await Service.GetForUserAsync(userId!);} string Badge(AppointmentStatus s)=>s switch{AppointmentStatus.Scheduled=>"primary",AppointmentStatus.Completed=>"success",_=>"secondary"};}
+
+<h1>@(isPsychologist ? "Patient Appointments" : "My Appointments")</h1>
+@if (!isPsychologist)
+{
+    <a class="btn btn-primary mb-3" href="/appointments/create">Schedule Appointment</a>
+}
+@if (items is null)
+{
+    <p>Loading...</p>
+}
+else if (!items.Any())
+{
+    <p>No appointments yet.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr><th>Date</th><th>Time</th><th>@(isPsychologist ? "Patient" : "Psychologist")</th><th>Reason</th><th>Status</th><th></th></tr>
+            </thead>
+            <tbody>
+                @foreach (var a in items)
+                {
+                    <tr>
+                        <td>@a.AppointmentDate</td>
+                        <td>@a.AppointmentTime</td>
+                        <td>@(isPsychologist ? a.PatientName : a.PsychologistName)</td>
+                        <td>@a.Reason</td>
+                        <td><span class="badge bg-@Badge(a.Status)">@a.Status</span></td>
+                        <td class="text-end">
+                            <a class="btn btn-sm btn-outline-primary" href="/appointments/@a.Id">Details</a>
+                            @if (!isPsychologist)
+                            {
+                                <a class="btn btn-sm btn-outline-secondary" href="/appointments/edit/@a.Id">Edit</a>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    List<Appointment>? items;
+    bool isPsychologist;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await Auth.GetAuthenticationStateAsync();
+        var currentUser = await UserManager.GetUserAsync(state.User);
+        isPsychologist = currentUser?.RolePreference == "Psychologist";
+        var userId = state.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value!;
+
+        items = isPsychologist
+            ? await Service.GetForPsychologistAsync(currentUser?.FullName ?? state.User.Identity?.Name ?? "")
+            : await Service.GetForUserAsync(userId);
+    }
+
+    string Badge(AppointmentStatus s) => s switch { AppointmentStatus.Scheduled => "primary", AppointmentStatus.Completed => "success", _ => "secondary" };
+}

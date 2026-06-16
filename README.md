@@ -1,20 +1,24 @@
 # MindConnect
 
-MindConnect is a .NET 8 Blazor Server MVP for managing mental health support appointments between patients and psychologists. It was built for a course project submission and focuses on clear CRUD functionality, authentication, validation, and a calm responsive UI.
+MindConnect is a .NET 8 Blazor Server MVP for managing mental health support appointments between patients and psychologists. It was built for a course project submission and focuses on authentication, appointment CRUD, role-based workflows, validation, and a calm responsive UI.
 
 ## Features
 
 - ASP.NET Core Identity registration, login, and logout
-- Demo-friendly profile role selector during registration
-- Dashboard with total, upcoming, and history appointment summaries
-- Appointment CRUD: create, list, details, edit, cancel, and delete
+- Patient and psychologist account roles
+- Psychologist registration with specialty, bio, available days, and available hours
+- Psychologist directory that combines seeded demo psychologists and registered psychologist accounts
+- Patient dashboard with total, upcoming, and history appointment summaries
+- Psychologist dashboard showing appointments booked with that psychologist
+- Appointment CRUD for patients: create, list, details, edit, cancel, and delete
+- Psychologist appointment view: review and cancel patient appointments booked with them
 - Appointment history with Completed/Cancelled filtering
-- Static psychologist availability page with schedule links
-- Friendly validation and error messages around form and database actions
+- Scheduling validation for psychologist availability, past dates, and duplicate time slots
+- Friendly validation and error messages around login, registration, scheduling, and database actions
 - SQLite persistence through Entity Framework Core
 - Responsive Bootstrap-based design
 - Documentation/About page for video demonstration
-- Seeded demo user and appointments
+- Seeded demo patient account and appointments
 
 ## Technologies Used
 
@@ -29,47 +33,72 @@ MindConnect is a .NET 8 Blazor Server MVP for managing mental health support app
 
 ```bash
 dotnet restore
-dotnet tool restore # optional, only if your environment uses a tool manifest
-dotnet ef database update # optional for migrations; the app also creates the SQLite database automatically on startup
 dotnet run
 ```
 
 Open the displayed local URL, usually `https://localhost:5001` or `http://localhost:5000`.
 
-## Database and Migration Notes
+## Database Notes
 
-The SQLite connection string is configured in `appsettings.json` as `Data Source=mindconnect.db`. On startup, the app creates the database schema automatically with EF Core so the course demo works without extra setup.
+The SQLite connection string is configured in `appsettings.json`:
 
-If you want to manage migrations explicitly, install the EF tool and create/apply a migration:
-
-```bash
-dotnet tool install --global dotnet-ef
-dotnet ef migrations add InitialCreate
-dotnet ef database update
+```json
+"DefaultConnection": "Data Source=mindconnect.db"
 ```
+
+On startup, the app creates the SQLite database schema automatically with EF Core so the course demo works without extra setup. The initializer also adds compatibility columns for the psychologist profile fields if an older local database already exists.
+
+For production deployment, use a persistent SQLite file location or replace SQLite with a managed production database such as PostgreSQL.
 
 ## Demo User
 
-A demo account is seeded when the app starts:
+A demo patient account is seeded when the app starts:
 
 - Email: `demo@mindconnect.local`
 - Password: `Password1`
 
 The demo account includes scheduled, completed, and cancelled appointments so the Dashboard, My Appointments, and History pages are easy to demonstrate.
 
+## Role Workflow
+
+### Patient
+
+Patients can:
+
+1. Register or log in.
+2. View dashboard appointment summaries.
+3. Browse psychologist availability.
+4. Schedule appointments only within psychologist availability.
+5. View, edit, cancel, delete, and review appointment history.
+
+### Psychologist
+
+Psychologists can:
+
+1. Register with specialty, bio, available days, and available hours.
+2. Appear in the psychologist directory.
+3. View appointments patients booked with them.
+4. Open appointment details.
+5. Cancel scheduled appointments when needed.
+
 ## CRUD Explanation
 
-The `Appointment` model includes patient name, psychologist name, date, time, reason, status, notes, creation timestamp, and the authenticated user's ID. Users can:
+The `Appointment` model includes patient name, psychologist name, date, time, reason, status, notes, creation timestamp, and the authenticated patient's user ID.
 
-1. Create an appointment from Schedule Appointment.
-2. Read appointments in My Appointments and Appointment Details.
-3. Update appointment details from Edit Appointment.
-4. Cancel or delete appointments from the details page.
-5. Review completed/cancelled appointments from Appointment History.
+CRUD is implemented through:
+
+1. **Create**: patients create appointments from Schedule Appointment.
+2. **Read**: patients and assigned psychologists view appointments in list and details pages.
+3. **Update**: patients edit appointment details from Edit Appointment.
+4. **Delete/Cancel**: patients can delete records; patients and assigned psychologists can cancel scheduled appointments.
+
+The application also blocks duplicate appointments for the same psychologist, date, and time.
 
 ## Authentication Explanation
 
-MindConnect uses ASP.NET Core Identity with a custom `ApplicationUser` class. Registration captures full name and a simple role preference for demo purposes. Appointment queries are scoped to the authenticated user's ID so users only see their own appointments.
+MindConnect uses ASP.NET Core Identity with a custom `ApplicationUser` class. Registration captures full name and role preference. Psychologist accounts also store specialty, biography, available days, and available hours.
+
+Login, registration, logout, and appointment creation use HTTP POST endpoints so authentication cookies and redirects work reliably in Blazor Server.
 
 ## Deployment Notes
 
@@ -79,21 +108,21 @@ For deployment, publish the app with:
 dotnet publish -c Release
 ```
 
-Configure a persistent SQLite file location or replace SQLite with a managed production database. Set production secrets and HTTPS settings through the hosting provider.
+Configure production secrets and database storage through the hosting provider. If deploying to Render with SQLite, use persistent disk storage; otherwise use a managed database.
 
 ## Future Improvements
 
-- Real psychologist accounts and role-based authorization
-- Calendar availability conflict checks
-- Email or SMS reminders
+- Calendar-style scheduling interface
 - Appointment search and pagination
+- Email or SMS reminders
 - Admin reporting dashboard
-- Production deployment pipeline
+- Stronger production database setup with migrations
+- More detailed authorization policies for larger deployments
 
 ## GitHub Commit Commands
 
 ```bash
 git add .
-git commit -m "Build MindConnect Blazor MVP"
+git commit -m "Update MindConnect documentation"
 git push origin HEAD
 ```

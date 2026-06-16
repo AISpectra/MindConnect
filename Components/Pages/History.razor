@@ -1,7 +1,48 @@
 @page "/history"
 @attribute [Authorize]
 @inject AppointmentService Service
+@inject UserManager<ApplicationUser> UserManager
 @inject AuthenticationStateProvider Auth
-<h1>Appointment History</h1><label class="form-label">Filter by status</label><select class="form-select w-auto mb-3" @bind="filter"><option value="All">All</option><option value="Completed">Completed</option><option value="Cancelled">Cancelled</option></select>
-@if(items is null){<p>Loading...</p>}else{var history=items.Where(a=>a.Status!=AppointmentStatus.Scheduled && (filter=="All"||a.Status.ToString()==filter));<div class="row g-3">@foreach(var a in history){<div class="col-md-6"><div class="card h-100"><div class="card-body"><h2 class="h5">@a.PsychologistName</h2><p>@a.AppointmentDate at @a.AppointmentTime</p><span class="badge bg-secondary">@a.Status</span><p class="mt-2">@a.Reason</p></div></div></div>}</div>}
-@code{List<Appointment>? items; string filter="All"; protected override async Task OnInitializedAsync(){var s=await Auth.GetAuthenticationStateAsync(); items=await Service.GetForUserAsync(s.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value!);}}
+
+<h1>Appointment History</h1>
+<label class="form-label">Filter by status</label>
+<select class="form-select w-auto mb-3" @bind="filter"><option value="All">All</option><option value="Completed">Completed</option><option value="Cancelled">Cancelled</option></select>
+@if (items is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    var history = items.Where(a => a.Status != AppointmentStatus.Scheduled && (filter == "All" || a.Status.ToString() == filter));
+    <div class="row g-3">
+        @foreach (var appointment in history)
+        {
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h2 class="h5">@(isPsychologist ? appointment.PatientName : appointment.PsychologistName)</h2>
+                        <p>@appointment.AppointmentDate at @appointment.AppointmentTime</p>
+                        <span class="badge bg-secondary">@appointment.Status</span>
+                        <p class="mt-2">@appointment.Reason</p>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    List<Appointment>? items;
+    string filter = "All";
+    bool isPsychologist;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await Auth.GetAuthenticationStateAsync();
+        var currentUser = await UserManager.GetUserAsync(state.User);
+        isPsychologist = currentUser?.RolePreference == "Psychologist";
+        items = isPsychologist
+            ? await Service.GetForPsychologistAsync(currentUser?.FullName ?? state.User.Identity?.Name ?? "")
+            : await Service.GetForUserAsync(state.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value!);
+    }
+}

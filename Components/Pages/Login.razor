@@ -1,5 +1,29 @@
 @page "/account/login"
-@inject SignInManager<ApplicationUser> SignInManager
-@inject NavigationManager Nav
-<h1>Login</h1>@if(error is not null){<div class="alert alert-danger">@error</div>}<EditForm Model="model" OnValidSubmit="LoginAsync"><DataAnnotationsValidator/><div class="mb-3"><label class="form-label">Email</label><InputText class="form-control" @bind-Value="model.Email" /></div><div class="mb-3"><label class="form-label">Password</label><InputText type="password" class="form-control" @bind-Value="model.Password" /></div><button class="btn btn-primary">Login</button><p class="mt-3 text-muted">Demo: demo@mindconnect.local / Password1</p></EditForm>
-@code{[SupplyParameterFromQuery] public string? ReturnUrl{get;set;} LoginModel model=new(); string? error; async Task LoginAsync(){var result=await SignInManager.PasswordSignInAsync(model.Email,model.Password,true,false); if(result.Succeeded) Nav.NavigateTo(ReturnUrl??"/dashboard",true); else error="Invalid email or password.";} class LoginModel{[System.ComponentModel.DataAnnotations.Required] public string Email{get;set;}="";[System.ComponentModel.DataAnnotations.Required] public string Password{get;set;}="";}}
+
+<h1>Login</h1>
+@if (!string.IsNullOrWhiteSpace(Error))
+{
+    <div class="alert alert-danger">@Error</div>
+}
+
+<form method="post" action="@LoginAction">
+    <div class="mb-3">
+        <label class="form-label" for="email">Email</label>
+        <input id="email" name="email" class="form-control" type="email" required />
+    </div>
+    <div class="mb-3">
+        <label class="form-label" for="password">Password</label>
+        <input id="password" name="password" class="form-control" type="password" required />
+    </div>
+    <button class="btn btn-primary" type="submit">Login</button>
+    <p class="mt-3 text-muted">Demo: demo@mindconnect.local / Password1</p>
+</form>
+
+@code {
+    [SupplyParameterFromQuery] public string? ReturnUrl { get; set; }
+    [SupplyParameterFromQuery] public string? Error { get; set; }
+
+    string LoginAction => string.IsNullOrWhiteSpace(ReturnUrl)
+        ? "/account/login-submit"
+        : $"/account/login-submit?returnUrl={Uri.EscapeDataString(ReturnUrl)}";
+}

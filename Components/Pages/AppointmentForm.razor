@@ -1,12 +1,114 @@
 @using System.ComponentModel.DataAnnotations
-<EditForm Model="Appointment" OnValidSubmit="SaveAsync"><DataAnnotationsValidator /><ValidationSummary />
- <div class="row g-3"><div class="col-md-6"><label class="form-label">Patient name</label><InputText class="form-control" @bind-Value="Appointment.PatientName" /><ValidationMessage For="()=>Appointment.PatientName" /></div>
- <div class="col-md-6"><label class="form-label">Psychologist</label><InputText class="form-control" @bind-Value="Appointment.PsychologistName" list="psychologists" /><datalist id="psychologists"><option>Dr. Emily Carter</option><option>Dr. Michael Smith</option><option>Dr. Sofia Martinez</option><option>Dr. David Johnson</option></datalist><ValidationMessage For="()=>Appointment.PsychologistName" /></div>
- <div class="col-md-4"><label class="form-label">Date</label><InputDate class="form-control" @bind-Value="appointmentDate" /><ValidationMessage For="()=>Appointment.AppointmentDate" /></div>
- <div class="col-md-4"><label class="form-label">Time</label><input class="form-control" type="time" value="@timeText" @onchange="UpdateTime" required /></div>
- <div class="col-md-4"><label class="form-label">Status</label><InputSelect class="form-select" @bind-Value="Appointment.Status"><option value="Scheduled">Scheduled</option><option value="Completed">Completed</option><option value="Cancelled">Cancelled</option></InputSelect></div>
- <div class="col-12"><label class="form-label">Reason</label><InputTextArea class="form-control" @bind-Value="Appointment.Reason" rows="3" /><ValidationMessage For="()=>Appointment.Reason" /></div>
- <div class="col-12"><label class="form-label">Notes</label><InputTextArea class="form-control" @bind-Value="Appointment.Notes" rows="3" /></div></div>
- <div class="mt-4"><button class="btn btn-primary" type="submit">@ButtonText</button><a class="btn btn-outline-secondary ms-2" href="/appointments">Cancel</a></div>
+
+<EditForm Model="Appointment" OnValidSubmit="SaveAsync">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="alert alert-danger">@error</div>
+    }
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label class="form-label">Patient name</label>
+            <InputText class="form-control" @bind-Value="Appointment.PatientName" readonly />
+            <ValidationMessage For="()=>Appointment.PatientName" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Psychologist</label>
+            <InputSelect class="form-select" @bind-Value="Appointment.PsychologistName">
+                <option value="">Select a psychologist</option>
+                @foreach (var psychologist in Psychologists)
+                {
+                    <option value="@psychologist.Name">@psychologist.Name - @psychologist.Specialty</option>
+                }
+            </InputSelect>
+            <ValidationMessage For="()=>Appointment.PsychologistName" />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Date</label>
+            <InputDate class="form-control" @bind-Value="appointmentDate" />
+            <ValidationMessage For="()=>Appointment.AppointmentDate" />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Time</label>
+            <input class="form-control" type="time" value="@timeText" @onchange="UpdateTime" required />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Status</label>
+            <InputSelect class="form-select" @bind-Value="Appointment.Status">
+                <option value="Scheduled">Scheduled</option>
+                <option value="Completed">Completed</option>
+                <option value="Cancelled">Cancelled</option>
+            </InputSelect>
+        </div>
+        <div class="col-12">
+            <label class="form-label">Reason</label>
+            <InputTextArea class="form-control" @bind-Value="Appointment.Reason" rows="3" />
+            <ValidationMessage For="()=>Appointment.Reason" />
+        </div>
+        <div class="col-12">
+            <label class="form-label">Notes</label>
+            <InputTextArea class="form-control" @bind-Value="Appointment.Notes" rows="3" />
+        </div>
+    </div>
+    <div class="mt-4">
+        <button class="btn btn-primary" type="submit">@ButtonText</button>
+        <a class="btn btn-outline-secondary ms-2" href="/appointments">Cancel</a>
+    </div>
 </EditForm>
-@code { [Parameter,EditorRequired] public Appointment Appointment {get;set;}=new(); [Parameter,EditorRequired] public EventCallback<Appointment> OnSave {get;set;} [Parameter] public string ButtonText {get;set;}="Save"; DateTime appointmentDate=DateTime.Today; string timeText="09:00"; protected override void OnParametersSet(){appointmentDate=Appointment.AppointmentDate.ToDateTime(TimeOnly.MinValue); timeText=Appointment.AppointmentTime.ToString("HH:mm");} void UpdateTime(ChangeEventArgs e)=>timeText=e.Value?.ToString()??"09:00"; async Task SaveAsync(){ Appointment.AppointmentDate=DateOnly.FromDateTime(appointmentDate); if(TimeOnly.TryParse(timeText,out var t)) Appointment.AppointmentTime=t; await OnSave.InvokeAsync(Appointment);} }
+
+@code {
+    [Parameter, EditorRequired] public Appointment Appointment { get; set; } = new();
+    [Parameter, EditorRequired] public EventCallback<Appointment> OnSave { get; set; }
+    [Parameter] public string ButtonText { get; set; } = "Save";
+    [Parameter] public IReadOnlyList<Psychologist> Psychologists { get; set; } = [];
+
+    DateTime appointmentDate = DateTime.Today;
+    string timeText = "09:00";
+    string? error;
+
+    protected override void OnParametersSet()
+    {
+        appointmentDate = Appointment.AppointmentDate.ToDateTime(TimeOnly.MinValue);
+        timeText = Appointment.AppointmentTime.ToString("HH:mm");
+    }
+
+    void UpdateTime(ChangeEventArgs e) => timeText = e.Value?.ToString() ?? "09:00";
+
+    async Task SaveAsync()
+    {
+        error = null;
+        Appointment.AppointmentDate = DateOnly.FromDateTime(appointmentDate);
+
+        if (!TimeOnly.TryParse(timeText, out var selectedTime))
+        {
+            error = "Select a valid appointment time.";
+            return;
+        }
+
+        Appointment.AppointmentTime = selectedTime;
+        var selectedPsychologist = Psychologists.FirstOrDefault(p => p.Name == Appointment.PsychologistName);
+        if (selectedPsychologist is null)
+        {
+            error = "Select an available psychologist.";
+            return;
+        }
+
+        var selectedDay = appointmentDate.DayOfWeek.ToString();
+        if (!selectedPsychologist.AvailableDays.Contains(selectedDay, StringComparison.OrdinalIgnoreCase))
+        {
+            error = $"{selectedPsychologist.Name} is not available on {selectedDay}.";
+            return;
+        }
+
+        var availableFrom = TimeOnly.Parse(selectedPsychologist.AvailableFrom);
+        var availableTo = TimeOnly.Parse(selectedPsychologist.AvailableTo);
+        if (selectedTime < availableFrom || selectedTime >= availableTo)
+        {
+            error = $"{selectedPsychologist.Name} is available from {selectedPsychologist.AvailableFrom} to {selectedPsychologist.AvailableTo}.";
+            return;
+        }
+
+        await OnSave.InvokeAsync(Appointment);
+    }
+}

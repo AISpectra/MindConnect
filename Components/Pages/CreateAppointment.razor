@@ -1,7 +1,78 @@
 @page "/appointments/create"
 @attribute [Authorize]
-@inject AppointmentService Service
+@inject PsychologistService Psychologists
+@inject UserManager<ApplicationUser> UserManager
 @inject AuthenticationStateProvider Auth
-@inject NavigationManager Nav
-<h1>Schedule Appointment</h1>@if(error is not null){<div class="alert alert-danger">@error</div>}<AppointmentForm Appointment="appointment" ButtonText="Create appointment" OnSave="Save" />
-@code{Appointment appointment=new(); string? error; protected override async Task OnInitializedAsync(){var s=await Auth.GetAuthenticationStateAsync(); appointment.UserId=s.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value!; appointment.PatientName=s.User.Identity?.Name??"";} async Task Save(Appointment a){try{a.CreatedAt=DateTime.UtcNow; await Service.AddAsync(a); Nav.NavigateTo("/appointments");}catch(Exception){error="We could not save the appointment. Please check your information and try again.";}}}
+
+<h1>Schedule Appointment</h1>
+@if (!string.IsNullOrWhiteSpace(Error))
+{
+    <div class="alert alert-danger">@Error</div>
+}
+@if (isPsychologist)
+{
+    <div class="alert alert-info">Psychologist accounts publish availability; patient accounts schedule appointments.</div>
+    <a class="btn btn-primary" href="/psychologists">View psychologist directory</a>
+}
+else if (availablePsychologists is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <form method="post" action="/appointments/create-submit">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label" for="patientName">Patient name</label>
+                <input id="patientName" class="form-control" value="@patientName" readonly />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" for="psychologistName">Psychologist</label>
+                <select id="psychologistName" name="psychologistName" class="form-select" required>
+                    <option value="">Select a psychologist</option>
+                    @foreach (var psychologist in availablePsychologists)
+                    {
+                        <option value="@psychologist.Name">@psychologist.Name - @psychologist.Specialty (@psychologist.AvailableDays, @psychologist.AvailableFrom-@psychologist.AvailableTo)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" for="appointmentDate">Date</label>
+                <input id="appointmentDate" name="appointmentDate" class="form-control" type="date" value="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" for="appointmentTime">Time</label>
+                <input id="appointmentTime" name="appointmentTime" class="form-control" type="time" value="09:00" required />
+            </div>
+            <div class="col-12">
+                <label class="form-label" for="reason">Reason</label>
+                <textarea id="reason" name="reason" class="form-control" rows="3" required></textarea>
+            </div>
+            <div class="col-12">
+                <label class="form-label" for="notes">Notes</label>
+                <textarea id="notes" name="notes" class="form-control" rows="3"></textarea>
+            </div>
+        </div>
+        <div class="mt-4">
+            <button class="btn btn-primary" type="submit">Create appointment</button>
+            <a class="btn btn-outline-secondary ms-2" href="/appointments">Cancel</a>
+        </div>
+    </form>
+}
+
+@code {
+    [SupplyParameterFromQuery] public string? Error { get; set; }
+
+    IReadOnlyList<Psychologist>? availablePsychologists;
+    bool isPsychologist;
+    string patientName = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await Auth.GetAuthenticationStateAsync();
+        var currentUser = await UserManager.GetUserAsync(state.User);
+        isPsychologist = currentUser?.RolePreference == "Psychologist";
+        patientName = currentUser?.FullName ?? state.User.Identity?.Name ?? "";
+        availablePsychologists = await Psychologists.GetPsychologistsAsync();
+    }
+}

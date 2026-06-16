@@ -1,12 +1,11 @@
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Options;
 using MindConnect.Models;
 
 namespace MindConnect.Data;
 
-public sealed class IdentityRevalidatingAuthenticationStateProvider(ILoggerFactory loggerFactory, IServiceScopeFactory scopeFactory, IOptions<IdentityOptions> options)
+public sealed class IdentityRevalidatingAuthenticationStateProvider(ILoggerFactory loggerFactory, IServiceScopeFactory scopeFactory)
     : RevalidatingServerAuthenticationStateProvider(loggerFactory)
 {
     protected override TimeSpan RevalidationInterval => TimeSpan.FromMinutes(30);
